@@ -314,4 +314,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Releases
 ### December, 2025
 * Initial Release
-
+* Tested on Jetson Orin Nano Super
+* Tested with JetPack 6.2.1
