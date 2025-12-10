@@ -300,7 +300,6 @@ Contributions are welcome! Here's how you can help:
 
 ## Related Projects
 
-- [jetson-st7789](https://github.com/yourusername/jetson-st7789) - Python driver for ST7789 displays on Jetson
 - [jetson-gpio](https://github.com/NVIDIA/jetson-gpio) - NVIDIA's GPIO library for Jetson
 
 ## License
