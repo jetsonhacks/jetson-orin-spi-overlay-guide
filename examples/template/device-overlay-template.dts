@@ -1,0 +1,169 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    overlay-name = "Template SPI Device Overlay";
+    compatible = "nvidia,p3768-0000+p3767-0005", "nvidia,tegra234";
+    
+    /*
+     * INSTRUCTIONS:
+     * 1. Replace "Template SPI Device" with your device name
+     * 2. Configure GPIO pins for your control signals (DC, RST, CS, etc.)
+     * 3. Configure SPI pins if using a different SPI bus
+     * 4. Adjust pin properties based on your requirements
+     * 5. Save as: jetson-<yourdevice>.dts
+     */
+    
+    /* 
+     * Fragment 0: GPIO Pin Configuration
+     * 
+     * Configure pins for GPIO control signals.
+     * Common control signals:
+     * - DC (Data/Command)
+     * - RST (Reset)
+     * - CS (Chip Select, if not using hardware CS)
+     * - INT (Interrupt)
+     * 
+     * STEPS:
+     * 1. Choose physical pins for your control signals
+     * 2. Find the SoC pin names (see docs/PIN_CONFIGURATION.md)
+     * 3. Configure each pin with appropriate function and properties
+     */
+    fragment@0 {
+        target-path = "/pinmux@2430000/pinmux_default";
+        __overlay__ {
+            
+            /* 
+             * Example: GPIO Pin Configuration
+             * Physical Pin: XX (replace with your pin number)
+             * SoC Pin: soc_gpio_name (replace with actual name)
+             * Purpose: DC/RST/CS/etc (specify your use)
+             */
+            example_gpio_pin {
+                nvidia,pins = "soc_gpio_name";  // Replace with actual pin name
+                nvidia,function = "rsvd0";       // GPIO function (rsvd0 or rsvd1)
+                nvidia,pull = <0x2>;             // 0x0=none, 0x1=down, 0x2=up
+                nvidia,tristate = <0x0>;         // 0x0=drive, 0x1=tristate
+                nvidia,enable-input = <0x0>;     // 0x0=output, 0x1=input
+            };
+            
+            /* 
+             * Add more GPIO pins as needed
+             * Copy the block above and modify for each control signal
+             */
+        };
+    };
+    
+    /* 
+     * Fragment 1: SPI Pin Configuration
+     * 
+     * Configure SPI bus pins. Most Jetson projects use SPI1.
+     * 
+     * Standard SPI signals:
+     * - MOSI (Master Out Slave In)
+     * - MISO (Master In Slave Out)
+     * - SCLK (Serial Clock)
+     * - CS0/CS1 (Chip Select)
+     * 
+     * COMMON CONFIGURATIONS:
+     * 
+     * SPI1 (40-pin header pins 19, 21, 23, 24, 26):
+     *   spi1_mosi_pz5 - Pin 19
+     *   spi1_miso_pz4 - Pin 21
+     *   spi1_sck_pz3  - Pin 23
+     *   spi1_cs0_pz6  - Pin 24
+     *   spi1_cs1_pz7  - Pin 26
+     * 
+     * If you need a different SPI bus (SPI0, SPI2, etc.), 
+     * consult the Jetson pinmux documentation.
+     */
+    fragment@1 {
+        target-path = "/pinmux@2430000/pinmux_default";
+        __overlay__ {
+            
+            /* SPI MOSI */
+            spi1_mosi_pz5 {
+                nvidia,pins = "spi1_mosi_pz5";
+                nvidia,function = "spi1";
+                nvidia,pull = <0x1>;             // Pull-down
+                nvidia,tristate = <0x0>;         // Drive
+                nvidia,enable-input = <0x1>;     // Bidirectional
+            };
+            
+            /* SPI MISO */
+            spi1_miso_pz4 {
+                nvidia,pins = "spi1_miso_pz4";
+                nvidia,function = "spi1";
+                nvidia,pull = <0x1>;             // Pull-down
+                nvidia,tristate = <0x1>;         // High-Z when not driven
+                nvidia,enable-input = <0x1>;     // Input enabled
+            };
+            
+            /* SPI Clock */
+            spi1_sck_pz3 {
+                nvidia,pins = "spi1_sck_pz3";
+                nvidia,function = "spi1";
+                nvidia,pull = <0x1>;             // Pull-down
+                nvidia,tristate = <0x0>;         // Drive
+                nvidia,enable-input = <0x1>;     // Bidirectional
+            };
+            
+            /* SPI Chip Select 0 */
+            spi1_cs0_pz6 {
+                nvidia,pins = "spi1_cs0_pz6";
+                nvidia,function = "spi1";
+                nvidia,pull = <0x2>;             // Pull-up
+                nvidia,tristate = <0x0>;         // Drive
+                nvidia,enable-input = <0x1>;     // Bidirectional
+            };
+            
+            /* SPI Chip Select 1 (optional) */
+            spi1_cs1_pz7 {
+                nvidia,pins = "spi1_cs1_pz7";
+                nvidia,function = "spi1";
+                nvidia,pull = <0x2>;             // Pull-up
+                nvidia,tristate = <0x0>;         // Drive
+                nvidia,enable-input = <0x1>;     // Bidirectional
+            };
+        };
+    };
+};
+
+/*
+ * COMPILATION:
+ * dtc -@ -O dtb -o jetson-<yourdevice>.dtbo jetson-<yourdevice>.dts
+ * 
+ * INSTALLATION:
+ * sudo cp jetson-<yourdevice>.dtbo /boot/
+ * 
+ * CONFIGURATION:
+ * Add to /boot/extlinux/extlinux.conf:
+ * OVERLAYS /boot/jetson-<yourdevice>.dtbo
+ * 
+ * Or use the automated installer script (recommended)
+ * 
+ * COMMON PIN FUNCTIONS:
+ * - rsvd0, rsvd1, rsvd2, rsvd3: GPIO modes
+ * - spi0, spi1, spi2, spi3: SPI functions
+ * - i2c1, i2c2, i2c3, i2c8: I2C functions
+ * - uarta, uartb, uartc: UART functions
+ * - pwm0, pwm1, pwm2, pwm3: PWM functions
+ * 
+ * PULL RESISTOR VALUES:
+ * - 0x0: No pull
+ * - 0x1: Pull-down
+ * - 0x2: Pull-up
+ * 
+ * TRISTATE VALUES:
+ * - 0x0: Drive (output enabled)
+ * - 0x1: Tristate (high-Z, output disabled)
+ * 
+ * INPUT ENABLE VALUES:
+ * - 0x0: Input disabled (output only)
+ * - 0x1: Input enabled (can read pin state)
+ * 
+ * For more information, see:
+ * - docs/DEVICE_TREE_BASICS.md
+ * - docs/PIN_CONFIGURATION.md
+ * - NVIDIA Jetson Linux Developer Guide
+ */
