@@ -48,22 +48,26 @@ sudo python3 tools/pin_inspector.py 29
 # 2. Check RST pin (default: 31) 
 sudo python3 tools/pin_inspector.py 31
 
-# Both should show: ✓ Pin is configured as GPIO and ready to use!
+# Both should show: READY: Pin is configured as GPIO and ready to use!
 ```
 
 ### If Pins Not Configured
 
-The tool will generate device tree fragments:
+The tool will show device tree fragment references. To configure pins as GPIO:
 
 ```bash
-# Generate overlay
-sudo python3 tools/pin_inspector.py 29 > pin29_overlay.dts
+# The tool outputs a REFERENCE FRAGMENT (not a complete overlay)
+sudo python3 tools/pin_inspector.py 29
 
-# Compile
-dtc -@ -O dtb -o pin29.dtbo pin29_overlay.dts
+# For complete overlay creation:
+# 1. Wrap the fragment in proper overlay structure
+# 2. Include DTS headers and metadata
+# 3. Compile: dtc -@ -I dts -O dtb -o overlay.dtbo overlay.dts
+# 4. Install: sudo cp overlay.dtbo /boot/
+# 5. Add to /boot/extlinux/extlinux.conf: OVERLAYS /boot/overlay.dtbo
+# 6. Reboot
 
-# Install
-sudo cp pin29.dtbo /boot/
+# See NVIDIA Jetson documentation for complete overlay examples
 ```
 
 ### Quick Pin Check Script

@@ -275,7 +275,7 @@ def generate_dts_fragment(info):
     # Determine best GPIO function
     gpio_funcs = [f for f in info.available_functions if f in ["gp", "rsvd0", "rsvd1", "rsvd2", "rsvd3"]]
     if not gpio_funcs:
-        print("\n⚠ WARNING: No GPIO-suitable functions found for this pin!")
+        print("\nWARNING: No GPIO-suitable functions found for this pin!")
         return None
     
     # Prefer rsvd0, then gp, then others
@@ -342,7 +342,7 @@ def blink_pin(pin_num, cycles=10, interval=0.5):
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(pin_num, GPIO.OUT)
         
-        print(f"\n🔄 Blinking pin {pin_num} ({cycles} cycles, {interval}s interval)...")
+        print(f"\nBlinking pin {pin_num} ({cycles} cycles, {interval}s interval)...")
         print("Press Ctrl+C to stop\n")
         
         for i in range(cycles):
@@ -354,16 +354,16 @@ def blink_pin(pin_num, cycles=10, interval=0.5):
             GPIO.output(pin_num, GPIO.LOW)
             time.sleep(interval)
         
-        print(f"\n✓ Blink test complete!")
+        print(f"\nBlink test complete!")
         GPIO.cleanup()
         return True
         
     except KeyboardInterrupt:
-        print("\n\n⚠ Interrupted by user")
+        print("\n\nInterrupted by user")
         GPIO.cleanup()
         return False
     except Exception as e:
-        print(f"\n❌ Error during GPIO operation: {e}")
+        print(f"\nERROR during GPIO operation: {e}")
         try:
             GPIO.cleanup()
         except:
@@ -388,8 +388,8 @@ def main():
         sys.exit(1)
     
     if os.geteuid() != 0:
-        print("⚠ Warning: Running without sudo. Some information may be unavailable.")
-        print("   GPIO operations require sudo.\n")
+        print("WARNING: Running without sudo. Some information may be unavailable.")
+        print("         GPIO operations require sudo.\n")
     
     try:
         pin_num = int(sys.argv[1])
@@ -409,30 +409,44 @@ def main():
     if info:
         print(info)
         
+        # Add explanation for hogged pins
+        if info.is_hogged:
+            print("NOTE: 'Hogged at boot' means the device tree pre-configured this pin")
+            print("      at boot time. This is normal for GPIO pins - they're ready to use!\n")
+        
         # Check if GPIO configured and offer to blink
         if is_gpio_configured(info):
-            print("✓ Pin is configured as GPIO and ready to use!")
+            print("READY: Pin is configured as GPIO and ready to use!")
             
             if want_blink:
                 if os.geteuid() != 0:
-                    print("\n❌ GPIO operations require sudo privileges")
-                    print("   Run with: sudo python3 pin_inspector.py", pin_num, "--blink")
+                    print("\nERROR: GPIO operations require sudo privileges")
+                    print("       Run with: sudo python3 pin_inspector.py", pin_num, "--blink")
                 else:
                     blink_pin(pin_num)
             else:
-                print("\n💡 Tip: Add --blink to test GPIO output")
-                print(f"   sudo python3 pin_inspector.py {pin_num} --blink")
+                print("\nTIP: Add --blink to test GPIO output")
+                print(f"     sudo python3 pin_inspector.py {pin_num} --blink")
         else:
-            print("⚠ Pin is NOT configured as GPIO")
-            print("  Configure it with the device tree fragment shown below:\n")
+            print("WARNING: Pin is NOT configured as GPIO")
+            print("         Configure it with the device tree fragment shown below:\n")
         
         dts = generate_dts_fragment(info)
         if dts:
-            print("--- DEVICE TREE FRAGMENT ---")
+            print("--- DEVICE TREE FRAGMENT (REFERENCE) ---")
             print(dts)
-            print("\nℹ Compile with: dtc -@ -O dtb -o overlay.dtbo overlay.dts")
-            print("ℹ Install to: /boot/overlay.dtbo")
-            print("ℹ Enable in: /boot/extlinux/extlinux.conf (add to APPEND line)")
+            print("\nABOUT THIS OUTPUT:")
+            print("   This fragment shows the pinmux configuration needed for GPIO mode.")
+            print("   It is NOT a complete device tree overlay and cannot be compiled as-is.")
+            print("")
+            print("TO CREATE A WORKING OVERLAY:")
+            print("   1. This fragment must be wrapped in a complete overlay structure")
+            print("   2. Include proper DTS headers and metadata")
+            print("   3. Compile with: dtc -@ -I dts -O dtb -o overlay.dtbo overlay.dts")
+            print("   4. Install to: /boot/overlay.dtbo")
+            print("   5. Add to /boot/extlinux/extlinux.conf: OVERLAYS /boot/overlay.dtbo")
+            print("")
+            print("   Consult NVIDIA Jetson documentation for complete overlay examples.")
 
 if __name__ == "__main__":
     main()
