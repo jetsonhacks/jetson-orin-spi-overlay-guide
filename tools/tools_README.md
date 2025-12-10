@@ -78,15 +78,6 @@ for pin in 29 31; do
 done
 ```
 
-## Future Tools
-
-Planned additions:
-- [ ] SPI diagnostic tool
-- [ ] Performance benchmark script
-- [ ] Display calibration tool
-- [ ] GPIO bulk configuration tool
-- [ ] Device tree overlay builder
-
 ## Contributing
 
 To add a new tool:
