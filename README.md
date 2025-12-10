@@ -1,6 +1,6 @@
 # Jetson Orin SPI Device Tree Overlay Guide
 
-**Complete guide and toolkit for configuring SPI devices on NVIDIA Jetson Orin using device tree overlays.**
+**Complete guide and toolkit for configuring SPI devices on NVIDIA Jetson Orin Nano/NX using device tree overlays.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
