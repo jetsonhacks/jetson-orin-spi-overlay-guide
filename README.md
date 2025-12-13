@@ -1,8 +1,9 @@
 # Jetson Orin SPI Device Tree Overlay Guide
 
-**Complete guide and toolkit for configuring SPI devices on NVIDIA Jetson Orin Nano/NX using device tree overlays.**
+**Complete guide and toolkit for configuring SPI devices on NVIDIA Jetson Orin using device tree overlays.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Driver](https://img.shields.io/badge/Python_Driver-jetson--orin--st7789-green)](https://github.com/jetsonhacks/jetson-orin-st7789)
 
 ## What This Repository Provides
 
@@ -21,7 +22,7 @@ NVIDIA's official documentation on device tree overlays is minimal and scattered
 - Automated tooling that handles the complexity
 - Clear explanations of what's happening under the hood
 - Multiple configuration management - switch between overlays easily
-- Proper bootloader setup with FDT and OVERLAYS directives
+- Proper bootloader setup with FDT and overlays directives
 
 If you've ever struggled with:
 - "How do I configure SPI pins on Jetson Orin?"
@@ -37,17 +38,18 @@ If you've ever struggled with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/jetson-orin-spi-overlay-guide.git
+git clone https://github.com/jetsonhacks/jetson-orin-spi-overlay-guide.git
 cd jetson-orin-spi-overlay-guide/examples/st7789
 
 # Choose the configuration that matches your hardware:
-# - Jetson default (pins 29, 31) - Recommended for custom setups
-# - Waveshare (pins 13, 22) - For Waveshare 2" LCD Module
-# - Adafruit (pins 18, 22) - For Adafruit 2.0" 320x240 IPS TFT
+# - jetson-default (pins 29, 31) - Recommended for custom setups
+# - waveshare (pins 13, 22) - For Waveshare 2" LCD Module
+# - adafruit (pins 18, 22) - For Adafruit 2.0" 320x240 IPS TFT
 
-# Install the overlay (example: Waveshare)
-chmod +x install_default_overlay.sh
-sudo ./install_default_overlay.sh
+# Install the overlay (example: Jetson default)
+cd jetson-default
+chmod +x install.sh
+sudo ./install.sh
 
 # Reboot when prompted
 sudo reboot
@@ -59,23 +61,37 @@ sudo python3 ../../tools/pin_inspector.py 31
 
 The installation script automatically installs the device tree compiler if needed.
 
+### Install Python Driver
+
+After installing the overlay, install the Python driver:
+
+```bash
+git clone https://github.com/jetsonhacks/jetson-orin-st7789.git
+cd jetson-orin-st7789
+uv sync
+
+# Test with matching wiring preset
+uv run st7789-demo --wiring jetson  # or waveshare, adafruit
+```
+
 ## Features
 
 ### Automated Installation
 - **Automatic FDT detection** - Finds the correct base device tree for your hardware
-- **Bootloader configuration** - Creates proper boot entries with FDT and OVERLAYS
+- **Bootloader configuration** - Updates boot config with overlays= directive
 - **Backup management** - Timestamped backups of extlinux.conf
 - **Dependency handling** - Automatically installs device tree compiler if needed
 - **Error handling** - Clear messages if something goes wrong
 
 ### Multiple Configurations
 - Install multiple overlays
-- Switch between them by changing boot default
+- Switch between them by reinstalling different overlay
 - Easy rollback to original configuration
 - No conflicts between overlays
 
 ### Debugging Tools
 - **pin_inspector.py** - Verify GPIO pin configuration
+- **detect_fdt.sh** - Detect correct base device tree
 - Blink test mode for hardware verification
 - Detailed error messages
 
@@ -100,7 +116,8 @@ Each configuration includes:
 - Device tree overlay source (.dts)
 - Automated installation script
 - Complete documentation
-- Test scripts
+
+**Python Driver:** [jetson-orin-st7789](https://github.com/jetsonhacks/jetson-orin-st7789)
 
 See [examples/st7789/](examples/st7789/) for full details.
 
@@ -140,23 +157,21 @@ The automated installer scripts handle:
 2. **Compilation** - Convert .dts source to .dtbo binary
 3. **Installation** - Copy overlay to /boot/
 4. **FDT Detection** - Find the correct base device tree for your hardware
-5. **Bootloader Configuration** - Create proper boot entry with:
-   - `FDT` line pointing to base device tree
-   - `OVERLAYS` line pointing to your overlay
-   - Correct APPEND line from primary entry
+5. **Bootloader Configuration** - Update extlinux.conf with overlays= directive
 6. **Backup** - Timestamped backup of extlinux.conf
 7. **Reboot** - Prompt to reboot and apply changes
 
 ### Boot Configuration Example
 
+The installer adds an `overlays=` line to the APPEND section:
+
 ```
-LABEL MyDevice
-    MENU LABEL My SPI Device Config
+LABEL primary
+    MENU LABEL primary kernel
     LINUX /boot/Image
     FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
     INITRD /boot/initrd
-    APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait rootfstype=ext4 ...
-    OVERLAYS /boot/my-device.dtbo
+    APPEND ${cbootargs} ... overlays=/boot/jetson-orin-st7789-default.dtbo
 ```
 
 ## Documentation
@@ -164,19 +179,16 @@ LABEL MyDevice
 ### Core Guides
 - [Device Tree Basics](docs/DEVICE_TREE_BASICS.md) - Understanding device trees
 - [FDT Configuration](docs/FDT_CONFIGURATION.md) - Base device tree setup
-- [Bootloader Setup](docs/BOOTLOADER_SETUP.md) - Extlinux configuration
-- [Pin Configuration](docs/PIN_CONFIGURATION.md) - GPIO and pinmux
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues
 
 ### Example Documentation
-- [ST7789 Master Guide](examples/st7789/docs/OVERLAYS_MASTER_GUIDE.md) - Complete ST7789 documentation
-- [Default Configuration](examples/st7789/docs/DEFAULT_CONFIGURATION.md) - Preset recommendations
+- [ST7789 Examples Overview](examples/st7789/README.md) - All ST7789 configurations
+- [ST7789 Master Guide](examples/st7789/OVERLAYS_MASTER_GUIDE.md) - Complete technical guide
 
 ## Tools
 
 ### Pin Inspector
 
-Verify GPIO pin configuration. If checking with a multimeter, you will probably get a ready of ~ 1.56V as there is no load. For the default example:
+Verify GPIO pin configuration:
 
 ```bash
 # Check if a pin is configured as GPIO
@@ -197,6 +209,8 @@ Line: 106
 Direction: out
 ```
 
+**Note:** If checking with a multimeter with no load, you will typically measure around 1.56V.
+
 ### FDT Detector
 
 Find the correct base device tree:
@@ -206,49 +220,57 @@ Find the correct base device tree:
 # Output: /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
 ```
 
+See [tools/README.md](tools/README.md) for complete tool documentation.
+
 ## Supported Hardware
 
 ### Tested On
 - Jetson Orin Nano Developer Kit
+- JetPack 6.0+
 
 ### Should Work On
 - Jetson Orin NX
 - Jetson AGX Orin
 
-**Note:** The FDT detection automatically adapts to your specific hardware variant.
+**Note:** The FDT detection automatically adapts to your specific hardware variant. Device tree overlays are platform-specific - overlays for Jetson Orin will not work on other Jetson platforms (Xavier, Nano, TX2) without modification.
 
 ## Switching Configurations
 
-If you have multiple overlays installed, switch between them:
+If you need to switch between overlays, simply install a different one:
+
+```bash
+# Switch from jetson-default to waveshare
+cd examples/st7789/waveshare
+sudo ./install.sh
+sudo reboot
+```
+
+The installer will update the boot configuration automatically.
+
+## Reverting Changes
+
+### Remove Overlay
 
 ```bash
 # Edit bootloader config
 sudo nano /boot/extlinux/extlinux.conf
 
-# Change the DEFAULT line:
-DEFAULT MyDevice1  # or MyDevice2, or primary
+# Find and remove the overlays= parameter from APPEND line
+# Before: APPEND ${cbootargs} ... overlays=/boot/jetson-orin-st7789-*.dtbo
+# After:  APPEND ${cbootargs} ...
 
-# Reboot
+# Save and reboot
 sudo reboot
 ```
 
-## Reverting Changes
+### Restore from Backup
 
-### Method 1: Change Boot Default
-```bash
-sudo nano /boot/extlinux/extlinux.conf
-# Change: DEFAULT MyDevice
-# To:     DEFAULT primary
-sudo reboot
-```
-
-### Method 2: Restore from Backup
 ```bash
 # List backups
 ls -lt /boot/extlinux/extlinux.conf.backup.*
 
 # Restore
-sudo cp /boot/extlinux/extlinux.conf.backup.20241209-143022 \
+sudo cp /boot/extlinux/extlinux.conf.backup.YYYYMMDD-HHMMSS \
         /boot/extlinux/extlinux.conf
 sudo reboot
 ```
@@ -258,10 +280,10 @@ sudo reboot
 ### Overlay doesn't load
 ```bash
 # Verify overlay file exists
-ls -l /boot/*.dtbo
+ls -l /boot/jetson-orin-*.dtbo
 
 # Check bootloader config
-cat /boot/extlinux/extlinux.conf | grep OVERLAYS
+cat /boot/extlinux/extlinux.conf | grep overlays
 
 # Check dmesg for errors
 dmesg | grep -i overlay
@@ -270,13 +292,22 @@ dmesg | grep -i overlay
 ### Pins not configured
 ```bash
 # Run installer again
-sudo ./install_my_overlay.sh
+cd examples/st7789/jetson-default  # or your overlay directory
+sudo ./install.sh
+sudo reboot
 
 # Verify with pin inspector
 sudo python3 tools/pin_inspector.py <pin_number>
 ```
 
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for complete troubleshooting guide.
+### Permission denied on GPIO
+```bash
+# Add user to gpio and dialout groups
+sudo usermod -a -G gpio,dialout $USER
+# Log out and back in
+```
+
+For more help, see the [OVERLAYS_MASTER_GUIDE](examples/st7789/OVERLAYS_MASTER_GUIDE.md).
 
 ## Contributing
 
@@ -300,6 +331,7 @@ Contributions are welcome! Here's how you can help:
 
 ## Related Projects
 
+- **[jetson-orin-st7789](https://github.com/jetsonhacks/jetson-orin-st7789)** - Python driver for ST7789 displays on Jetson Orin. Works with the overlays in this repository.
 - [jetson-gpio](https://github.com/NVIDIA/jetson-gpio) - NVIDIA's GPIO library for Jetson
 
 ## License
@@ -308,10 +340,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/jetson-orin-spi-overlay-guide/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/jetson-orin-spi-overlay-guide/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jetsonhacks/jetson-orin-spi-overlay-guide/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jetsonhacks/jetson-orin-spi-overlay-guide/discussions)
+
+## Acknowledgments
+
+Created by JetsonHacks for the Jetson Orin community.
 
 ## Releases
-### December, 2025
-* Initial Release
 
+### December 2025
+- Initial Release
+- ST7789 display examples (jetson-default, waveshare, adafruit)
+- Automated installation with FDT detection
+- Pin inspection and debugging tools

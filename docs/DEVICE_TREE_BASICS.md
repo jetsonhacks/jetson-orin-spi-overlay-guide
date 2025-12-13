@@ -38,7 +38,7 @@ An overlay modifies the base tree:
 - Adds new device nodes
 - Overrides default settings
 
-Example: `jetson-st7789-waveshare.dtbo`
+Example: `jetson-orin-st7789-waveshare.dtbo`
 
 ## Device Tree Syntax
 
@@ -365,8 +365,6 @@ fragment@0 {
 ## Next Steps
 
 - [FDT Configuration](FDT_CONFIGURATION.md) - Understanding base device trees
-- [Bootloader Setup](BOOTLOADER_SETUP.md) - Loading overlays
-- [Pin Configuration](PIN_CONFIGURATION.md) - Detailed pinmux guide
 
 ---
 

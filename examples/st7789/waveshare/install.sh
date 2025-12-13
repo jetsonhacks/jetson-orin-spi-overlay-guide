@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install Adafruit ST7789 Device Tree Overlay for Jetson Orin
+# Install Waveshare ST7789 Device Tree Overlay for Jetson Orin
 
 set -e
 
@@ -10,13 +10,13 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  Adafruit ST7789 Overlay Installer                          ║${NC}"
+echo -e "${BLUE}║  Waveshare ST7789 Overlay Installer                         ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # Check root
 if [ "$EUID" -ne 0 ]; then 
-    echo -e "${RED}✗ Please run as root: sudo ./install_adafruit_overlay.sh${NC}"
+    echo -e "${RED}✗ Please run as root: sudo ./install_waveshare_overlay.sh${NC}"
     exit 1
 fi
 
@@ -31,8 +31,8 @@ fi
 
 echo -e "${GREEN}✓ dtc is available${NC}"
 
-DTS_FILE="jetson-st7789-adafruit.dts"
-DTBO_FILE="jetson-st7789-adafruit.dtbo"
+DTS_FILE="jetson-orin-st7789-waveshare.dts"
+DTBO_FILE="jetson-orin-st7789-waveshare.dtbo"
 
 # Check for DTS file
 if [ ! -f "$DTS_FILE" ]; then
@@ -84,12 +84,12 @@ BACKUP="${EXTLINUX}.backup.$(date +%Y%m%d-%H%M%S)"
 echo -e "${BLUE}ℹ Backing up $EXTLINUX to $BACKUP${NC}"
 cp "$EXTLINUX" "$BACKUP"
 
-# Check if Adafruit entry already exists
-if grep -q "LABEL Adafruit" "$EXTLINUX"; then
-    echo -e "${YELLOW}⚠ Adafruit boot entry already exists${NC}"
+# Check if Waveshare entry already exists
+if grep -q "LABEL Waveshare" "$EXTLINUX"; then
+    echo -e "${YELLOW}⚠ Waveshare boot entry already exists${NC}"
     echo -e "${YELLOW}⚠ Removing old entry...${NC}"
-    # Remove old entry (from LABEL Adafruit to the line before next LABEL)
-    sed -i '/^LABEL Adafruit$/,/^LABEL\|^$/{ /^LABEL Adafruit$/d; /^LABEL [^A]/Q; d; }' "$EXTLINUX"
+    # Remove old entry (from LABEL Waveshare to the line before next LABEL)
+    sed -i '/^LABEL Waveshare$/,/^LABEL\|^$/{ /^LABEL Waveshare$/d; /^LABEL [^W]/Q; d; }' "$EXTLINUX"
 fi
 
 # Get the APPEND line from primary entry
@@ -106,8 +106,8 @@ echo -e "${BLUE}ℹ Creating new boot entry...${NC}"
 
 cat >> "$EXTLINUX" << EOF
 
-LABEL Adafruit
-	MENU LABEL Adafruit ST7789 Config (SPI0)
+LABEL Waveshare
+	MENU LABEL Waveshare ST7789 Config
 	LINUX /boot/Image
 	FDT $FDT_FILE
 	INITRD /boot/initrd
@@ -115,13 +115,13 @@ LABEL Adafruit
 	OVERLAYS /boot/$DTBO_FILE
 EOF
 
-echo -e "${GREEN}✓ Added Adafruit boot entry to $EXTLINUX${NC}"
+echo -e "${GREEN}✓ Added Waveshare boot entry to $EXTLINUX${NC}"
 
 # Set as default
-echo -e "${BLUE}ℹ Setting Adafruit as default boot option...${NC}"
-sed -i 's/^DEFAULT .*/DEFAULT Adafruit/' "$EXTLINUX"
+echo -e "${BLUE}ℹ Setting Waveshare as default boot option...${NC}"
+sed -i 's/^DEFAULT .*/DEFAULT Waveshare/' "$EXTLINUX"
 
-echo -e "${GREEN}✓ Set Adafruit as default${NC}"
+echo -e "${GREEN}✓ Set Waveshare as default${NC}"
 
 # Summary
 echo ""
@@ -129,27 +129,24 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║  Installation Complete                                       ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}✓ Adafruit overlay installed${NC}"
-echo -e "${GREEN}✓ Created new boot entry: 'Adafruit'${NC}"
+echo -e "${GREEN}✓ Waveshare overlay installed${NC}"
+echo -e "${GREEN}✓ Created new boot entry: 'Waveshare'${NC}"
 echo -e "${GREEN}✓ Set as default boot option${NC}"
 echo ""
-echo "  Pin 19 (MOSI) -> SPI0 MOSI"
-echo "  Pin 23 (SCLK) -> SPI0 SCK"
-echo "  Pin 24 (CS)   -> SPI0 CS0"
-echo "  Pin 18 (DC)   -> spi1_mosi_pz5"
-echo "  Pin 22 (RST)  -> spi1_miso_pz4"
+echo "  Pin 13 (RST) -> spi3_sck_py0"
+echo "  Pin 22 (DC)  -> spi3_miso_py1"
 echo ""
 echo -e "${YELLOW}⚠ REBOOT REQUIRED${NC}"
 echo ""
 echo "After reboot, verify with:"
-echo "  sudo python3 tools/pin_inspector.py 18"
+echo "  sudo python3 tools/pin_inspector.py 13"
 echo "  sudo python3 tools/pin_inspector.py 22"
 echo ""
 echo "Then test with:"
-echo "  sudo python3 test_adafruit_spi0.py"
+echo "  sudo python3 test_waveshare_default.py"
 echo ""
 echo "To revert to original config, edit $EXTLINUX and change:"
-echo "  DEFAULT Adafruit  ->  DEFAULT primary"
+echo "  DEFAULT Waveshare  ->  DEFAULT primary"
 echo ""
 echo -ne "${YELLOW}Reboot now? [y/N] ${NC}"
 read -r response

@@ -6,21 +6,22 @@
 
 ## Why FDT Matters for Overlays
 
-When using device tree overlays, you must specify the correct base FDT file in your bootloader configuration. The overlay is then applied *on top* of this base tree.
+When using device tree overlays, the bootloader must load the correct base FDT file. The overlay is then applied on top of this base tree.
 
 ### Bootloader Configuration
 
+Modern Jetson systems use the `overlays=` parameter in the APPEND line:
+
 ```
-LABEL MyConfig
-    MENU LABEL My Custom Configuration
+LABEL primary
+    MENU LABEL primary kernel
     LINUX /boot/Image
-    FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb  ← Base tree
+    FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
     INITRD /boot/initrd
-    APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait ...
-    OVERLAYS /boot/my-overlay.dtbo                                     ← Overlay
+    APPEND ${cbootargs} ... overlays=/boot/my-overlay.dtbo
 ```
 
-**Without the FDT line**, the bootloader may use an incorrect or default device tree, and your overlay might not apply correctly.
+**The FDT line specifies the base device tree, and the overlays= parameter specifies which overlay to apply.**
 
 ## Finding Your FDT File
 
@@ -43,7 +44,7 @@ For most Jetson Orin Nano systems, you'll see:
 
 Output:
 ```
-Detected FDT: /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
+/boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
 ```
 
 ### Method 3: Check Device Tree Compatible String
@@ -108,13 +109,13 @@ kernel_tegra234-p3701-0000-p3737-0000.dtb
 ## When to Specify FDT
 
 ### Always Specify When:
-- ✅ Using device tree overlays
-- ✅ Creating custom boot entries
-- ✅ You want explicit control over base device tree
+- Using device tree overlays
+- Creating custom boot entries
+- You want explicit control over base device tree
 
 ### May Omit When:
-- ❌ Using the default "primary" boot entry
-- ❌ Bootloader has correct default configured
+- Using the default "primary" boot entry
+- Bootloader has correct default configured
 
 **Best Practice:** Always specify FDT explicitly when using overlays for clarity and reliability.
 
@@ -148,7 +149,7 @@ cat /boot/extlinux/extlinux.conf
 
 ```
 TIMEOUT 30
-DEFAULT primary                        ← Which entry to boot by default
+DEFAULT primary
 MENU TITLE L4T boot options
 
 LABEL primary
@@ -156,15 +157,20 @@ LABEL primary
     LINUX /boot/Image
     INITRD /boot/initrd
     APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait ...
-    # Note: No explicit FDT line - uses bootloader default
+    # Note: May or may not have explicit FDT line
+```
 
-LABEL CustomOverlay
-    MENU LABEL Custom Hardware Config
+### Adding Overlays
+
+The installer scripts add the `overlays=` parameter to the APPEND line:
+
+```
+LABEL primary
+    MENU LABEL primary kernel
     LINUX /boot/Image
     FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
     INITRD /boot/initrd
-    APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait ...
-    OVERLAYS /boot/my-overlay.dtbo
+    APPEND ${cbootargs} ... overlays=/boot/jetson-orin-st7789-waveshare.dtbo
 ```
 
 ### Key Elements
@@ -174,12 +180,11 @@ LABEL CustomOverlay
 3. **LINUX** - Kernel image path
 4. **FDT** - Base device tree path
 5. **INITRD** - Initial ramdisk path
-6. **APPEND** - Kernel command line parameters
-7. **OVERLAYS** - Device tree overlay path(s)
+6. **APPEND** - Kernel command line parameters (includes overlays=)
 
 ### APPEND Line
 
-The APPEND line should be copied from your primary entry:
+The APPEND line should be preserved from your existing entry:
 
 ```bash
 # Extract APPEND line from primary entry
@@ -191,9 +196,24 @@ Example output:
 APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait rootfstype=ext4 mminit_loglevel=4 console=ttyTCU0,115200 firmware_class.path=/etc/firmware fbcon=map:0 video=efifb:off console=tty0
 ```
 
-This ensures your custom entry uses the same kernel parameters as the working default.
+This ensures your overlay configuration uses the same kernel parameters as the working default.
 
 ## Creating Boot Entries with FDT
+
+### Automated Method (Recommended)
+
+Our installer scripts do this automatically:
+
+```bash
+cd examples/st7789/waveshare
+sudo ./install.sh
+```
+
+The script:
+1. Detects FDT automatically
+2. Backs up configuration with timestamp
+3. Adds overlays= parameter to APPEND line
+4. Prompts for reboot
 
 ### Manual Method
 
@@ -201,64 +221,33 @@ This ensures your custom entry uses the same kernel parameters as the working de
 # 1. Backup configuration
 sudo cp /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf.backup
 
-# 2. Detect FDT
-FDT=$(ls /boot/dtb/kernel_tegra*.dtb | head -n1)
+# 2. Edit configuration
+sudo nano /boot/extlinux/extlinux.conf
 
-# 3. Get APPEND line
-APPEND_LINE=$(grep "APPEND" /boot/extlinux/extlinux.conf | grep -v "^#" | head -n1)
+# 3. Add overlays= to APPEND line
+# Before: APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait ...
+# After:  APPEND ${cbootargs} root=/dev/mmcblk0p1 rw rootwait ... overlays=/boot/my-overlay.dtbo
 
-# 4. Add new entry
-sudo tee -a /boot/extlinux/extlinux.conf << EOF
-
-LABEL MyOverlay
-    MENU LABEL My Device Overlay
-    LINUX /boot/Image
-    FDT $FDT
-    INITRD /boot/initrd
-    $APPEND_LINE
-    OVERLAYS /boot/my-overlay.dtbo
-EOF
-
-# 5. Set as default (optional)
-sudo sed -i 's/^DEFAULT .*/DEFAULT MyOverlay/' /boot/extlinux/extlinux.conf
-
-# 6. Reboot
+# 4. Save and reboot
 sudo reboot
 ```
-
-### Automated Method
-
-Our installer scripts do this automatically:
-
-```bash
-sudo ./install_my_overlay.sh
-```
-
-The script:
-1. ✅ Detects FDT automatically
-2. ✅ Extracts APPEND line from primary entry
-3. ✅ Creates proper boot entry with FDT and OVERLAYS
-4. ✅ Backs up configuration with timestamp
-5. ✅ Sets new entry as default
-6. ✅ Prompts for reboot
 
 ## Verifying FDT Configuration
 
 ### Check Boot Entry
 
 ```bash
-cat /boot/extlinux/extlinux.conf | grep -A 8 "LABEL MyOverlay"
+cat /boot/extlinux/extlinux.conf | grep -A 6 "LABEL primary"
 ```
 
 Should show:
 ```
-LABEL MyOverlay
-    MENU LABEL My Device Overlay
+LABEL primary
+    MENU LABEL primary kernel
     LINUX /boot/Image
-    FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb  ← Present
+    FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
     INITRD /boot/initrd
-    APPEND ${cbootargs} ...
-    OVERLAYS /boot/my-overlay.dtbo  ← Present
+    APPEND ${cbootargs} ... overlays=/boot/jetson-orin-st7789-waveshare.dtbo
 ```
 
 ### Verify After Boot
@@ -285,14 +274,14 @@ dmesg | grep -i pinmux
 
 **Solution:**
 ```bash
-# 1. Verify FDT line is present
-cat /boot/extlinux/extlinux.conf | grep "FDT"
+# 1. Verify overlays= is in APPEND line
+cat /boot/extlinux/extlinux.conf | grep overlays
 
-# 2. Verify FDT file exists
-ls -l /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
+# 2. Verify overlay file exists
+ls -l /boot/jetson-orin-st7789-*.dtbo
 
 # 3. Check for typos in path
-cat /boot/extlinux/extlinux.conf | grep -A 8 "LABEL"
+cat /boot/extlinux/extlinux.conf | grep APPEND
 ```
 
 ### Problem: Wrong FDT file
@@ -369,7 +358,7 @@ This shows you the complete hardware description, including:
 2. **Use absolute paths** - `/boot/dtb/...` not relative paths
 3. **Verify file exists** - Check before rebooting
 4. **Backup first** - Always backup extlinux.conf before editing
-5. **Test on one entry** - Create new entry, test, then migrate
+5. **Test incrementally** - Apply one overlay, test, then add more
 6. **Document your choice** - Comment why you chose specific FDT
 7. **Use automation** - Let installer scripts detect and configure FDT
 
@@ -381,14 +370,13 @@ This shows you the complete hardware description, including:
 | **File location** | `/boot/dtb/kernel_tegra*.dtb` |
 | **When needed** | Always when using device tree overlays |
 | **Detection** | Use `detect_fdt.sh` or find first .dtb file |
-| **Configuration** | Add `FDT` line to boot entry in extlinux.conf |
-| **With overlays** | FDT = base, OVERLAYS = modifications |
+| **Configuration** | Add `FDT` line to boot entry, overlays= to APPEND |
+| **With overlays** | FDT = base, overlays= modifications |
 
 ## Next Steps
 
-- [Bootloader Setup](BOOTLOADER_SETUP.md) - Complete extlinux.conf guide
 - [Device Tree Basics](DEVICE_TREE_BASICS.md) - Understanding device trees
-- [Troubleshooting](TROUBLESHOOTING.md) - Common issues
+- [ST7789 Examples](../examples/st7789/) - Working overlay examples
 
 ---
 

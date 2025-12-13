@@ -31,8 +31,8 @@ fi
 
 echo -e "${GREEN}✓ dtc is available${NC}"
 
-DTS_FILE="jetson-st7789-default.dts"
-DTBO_FILE="jetson-st7789-default.dtbo"
+DTS_FILE="jetson-orin-st7789-default.dts"
+DTBO_FILE="jetson-orin-st7789-default.dtbo"
 
 # Check for DTS file
 if [ ! -f "$DTS_FILE" ]; then
