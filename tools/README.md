@@ -37,7 +37,7 @@ sudo python3 pin_inspector.py 29 --blink
 **Requirements:**
 - Root/sudo access
 - Kernel debugfs mounted
-- Optional: Jetson.GPIO for blink tests
+- Optional: libgpiod for blink tests ( $ sudo apt install libgpiod )
 
 ### detect_fdt.sh
 
