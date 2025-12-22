@@ -82,30 +82,7 @@ sudo python3 pin_inspector.py 22  # RST pin
 
 ## After Installing Overlay
 
-### Install Python Driver
-
-```bash
-git clone https://github.com/jetsonhacks/jetson-orin-st7789.git
-cd jetson-orin-st7789
-
-# Install with uv (recommended)
-uv sync
-
-# Test installation
-uv run python -c "from jetson_orin_st7789 import ST7789; print('Success')"
-```
-
-### Run Examples
-
-```bash
-# Basic colors demo - use preset matching your overlay
-uv run st7789-demo --wiring jetson      # If you installed jetson-default
-uv run st7789-demo --wiring waveshare   # If you installed waveshare
-uv run st7789-demo --wiring adafruit    # If you installed adafruit
-
-# Test suite
-uv run st7789-test --wiring jetson
-```
+See https://github.com/jetsonhacks/jetson-orin-st7789
 
 ## Wiring Reference
 
